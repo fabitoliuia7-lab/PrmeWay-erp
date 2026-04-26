@@ -21,12 +21,9 @@ export default function Login() {
         <div className="flex flex-col items-center justify-center mb-8">
           <div className="w-24 h-24 flex items-center justify-center mb-4">
             <img 
-              src="/logo.png" 
+              src="/logo.png?v=2" 
               alt="Primeway Logo" 
               className="w-full h-full object-contain drop-shadow-md"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M35,28 L35,85 L55,95 L55,25 Z' fill='%234b85c5'/%3E%3Cpath d='M25,40 C 25,25 45,15 65,15 C 90,15 95,40 80,60 C 70,75 55,65 55,65 L 55,45 C 55,45 70,55 75,45 C 80,30 55,30 50,30 L 25,45 Z' fill='%23283583'/%3E%3C/svg%3E`;
-              }}
             />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 text-center tracking-tight">Primeway ERP</h1>
