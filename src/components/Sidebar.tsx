@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, ShoppingBag, LogOut, Package, PieChart, BarChart } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clsx from 'clsx';
+import logoUrl from '../assets/logo.png';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -26,7 +27,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         <div className="flex items-center gap-3 text-white">
           <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg p-1 shrink-0">
             <img 
-              src="/logo.png" 
+              src={logoUrl} 
               alt="Primeway Logo" 
               className="w-full h-full object-contain"
             />
