@@ -24,18 +24,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
     <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 h-[100dvh]">
       <div className="p-6 border-b border-slate-800">
         <div className="flex items-center gap-3 text-white">
-          {!imgError ? (
-            <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg p-1 shrink-0">
-              <img 
-                src="/logo.png?v=2" 
-                alt="Primeway Logo" 
-                className="w-full h-full object-contain"
-                onError={() => setImgError(true)}
-              />
-            </div>
-          ) : (
-            <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center font-bold shrink-0">P</div>
-          )}
+          <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg p-1 shrink-0">
+            <img 
+              src="/logo.png" 
+              alt="Primeway Logo" 
+              className="w-full h-full object-contain"
+            />
+          </div>
           <span className="text-xl font-bold tracking-tight">Primeway</span>
         </div>
       </div>
