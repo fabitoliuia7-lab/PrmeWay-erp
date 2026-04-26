@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, deleteDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Save, Trash2, Plus, Minus } from 'lucide-react';
 
 export default function OpportunityDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isNew = id === 'new';
 
   const [formData, setFormData] = useState({
@@ -85,6 +87,8 @@ export default function OpportunityDetail() {
         await setDoc(doc(db, 'opportunities', newId), {
           ...dataToSave,
           createdAt: serverTimestamp(),
+          ownerId: user?.uid,
+          userEmail: user?.email,
         });
         navigate('/opportunities');
       } else if (id) {

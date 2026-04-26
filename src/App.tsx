@@ -16,6 +16,7 @@ import SaleDetail from './pages/SaleDetail';
 import OpportunitiesList from './pages/OpportunitiesList';
 import OpportunityDetail from './pages/OpportunityDetail';
 import Reports from './pages/Reports';
+import Tasks from './pages/Tasks';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -48,6 +49,7 @@ function AppRoutes() {
         <Route path="opportunities/:id" element={<OpportunityDetail />} />
         <Route path="sales" element={<SalesList />} />
         <Route path="sales/:id" element={<SaleDetail />} />
+        <Route path="agenda" element={<Tasks />} />
         <Route path="reports" element={<Reports />} />
       </Route>
     </Routes>

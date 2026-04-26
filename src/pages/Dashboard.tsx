@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Users, ShoppingBag, FolderKanban, Package } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { Users, ShoppingBag, FolderKanban, Calendar, Clock } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -10,46 +10,74 @@ export default function Dashboard() {
     totalSales: 0,
     inTransit: 0,
     totalOpps: 0,
+    totalOppValue: 0,
+    pendingTasks: 0,
   });
   const [oppsData, setOppsData] = useState<any[]>([]);
+  const [todayTasks, setTodayTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const COLORS = ['#818cf8', '#38bdf8', '#fbbf24', '#34d399', '#fb7185'];
+  const COLORS = ['#38bdf8', '#818cf8', '#fbbf24', '#34d399', '#fb7185'];
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [clientsSnap, salesSnap, oppsSnap] = await Promise.all([
+        const [clientsSnap, salesSnap, oppsSnap, tasksSnap] = await Promise.all([
           getDocs(collection(db, 'clients')),
           getDocs(collection(db, 'sales')),
           getDocs(collection(db, 'opportunities')),
+          getDocs(query(collection(db, 'tasks'), where('status', '==', 'Pendente'))),
         ]);
         
         let inTransitCount = 0;
         salesSnap.forEach(doc => {
-          if (doc.data().status === 'In Transit') {
+          if (doc.data().status === 'Em Trânsito') {
             inTransitCount++;
           }
         });
 
         const oppsCountByStatus: any = {};
+        let totalValue = 0;
+
         oppsSnap.forEach(doc => {
-          const status = doc.data().status || 'Sem status';
+          const data = doc.data();
+          const status = data.status || 'Sem status';
           oppsCountByStatus[status] = (oppsCountByStatus[status] || 0) + 1;
+          
+          let val = data.value || 0;
+          if(typeof val === 'string') val = parseFloat(val) || 0;
+          totalValue += val;
         });
 
         const oppsChartData = Object.keys(oppsCountByStatus).map(key => ({
           name: key,
+          Quantidade: oppsCountByStatus[key],
           value: oppsCountByStatus[key]
         }));
 
         setOppsData(oppsChartData);
+
+        const tasksList: any[] = [];
+        tasksSnap.forEach(doc => {
+          const data = doc.id ? { id: doc.id, ...doc.data() } : doc.data();
+          tasksList.push(data);
+        });
+
+        tasksList.sort((a, b) => {
+          const dateA = a.date?.toDate() || new Date(0);
+          const dateB = b.date?.toDate() || new Date(0);
+          return dateA.getTime() - dateB.getTime();
+        });
+
+        setTodayTasks(tasksList.slice(0, 5));
 
         setStats({
           totalClients: clientsSnap.size,
           totalSales: salesSnap.size,
           inTransit: inTransitCount,
           totalOpps: oppsSnap.size,
+          totalOppValue: totalValue,
+          pendingTasks: tasksSnap.size,
         });
       } catch (err) {
         console.error("Error fetching stats:", err);
@@ -65,17 +93,30 @@ export default function Dashboard() {
     return <div className="text-slate-500 p-8">Carregando dashboard...</div>;
   }
 
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value, name }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 1.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  
+    return (
+      <text x={x} y={y} fill="#475569" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={11} fontWeight={600}>
+        {`${name} (${value})`}
+      </text>
+    );
+  };
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-900">Visão Geral</h1>
+    <div className="flex flex-col gap-6 max-w-[1400px] mx-auto w-full">
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="text-2xl font-bold text-slate-900">Visão Geral</h1>
       </div>
-      
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Clientes</p>
-            <p className="text-2xl font-bold text-slate-900">{stats.totalClients}</p>
+            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Total de Clientes</p>
+            <p className="text-2xl font-extrabold text-slate-900">{stats.totalClients}</p>
           </div>
           <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
             <Users className="w-6 h-6" />
@@ -84,8 +125,8 @@ export default function Dashboard() {
 
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Oportunidades</p>
-            <p className="text-2xl font-bold text-slate-900">{stats.totalOpps}</p>
+            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Oportunidades (ERP)</p>
+            <p className="text-2xl font-extrabold text-slate-900">{stats.totalOpps}</p>
           </div>
           <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
             <FolderKanban className="w-6 h-6" />
@@ -94,8 +135,8 @@ export default function Dashboard() {
 
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Vendas/Import.</p>
-            <p className="text-2xl font-bold text-slate-900">{stats.totalSales}</p>
+            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Vendas / Importações</p>
+            <p className="text-2xl font-extrabold text-slate-900">{stats.totalSales}</p>
           </div>
           <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center">
             <ShoppingBag className="w-6 h-6" />
@@ -104,19 +145,44 @@ export default function Dashboard() {
 
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Em Trânsito</p>
-            <p className="text-2xl font-bold text-slate-900">{stats.inTransit}</p>
+            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Tarefas Agendadas</p>
+            <p className="text-2xl font-extrabold text-slate-900">{stats.pendingTasks}</p>
           </div>
           <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
-            <Package className="w-6 h-6" />
+            <Calendar className="w-6 h-6" />
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-900 mb-6">Funil de Oportunidades</h2>
-          <div className="h-[300px]">
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+          <h2 className="text-sm font-bold text-slate-800 uppercase mb-6">Quant. Oportunidades por Status</h2>
+          <div className="flex-1 min-h-[300px]">
+             {oppsData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={oppsData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barGap={1}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} dx={-10} allowDecimals={false} />
+                    <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Bar dataKey="Quantidade" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40}>
+                       {oppsData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-slate-400 text-sm">
+                  Nenhuma oportunidade cadastrada
+                </div>
+              )}
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+          <h2 className="text-sm font-bold text-slate-800 uppercase mb-6">Status das Oportunidades</h2>
+          <div className="flex-1 min-h-[300px]">
             {oppsData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -124,17 +190,19 @@ export default function Dashboard() {
                     data={oppsData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
+                    innerRadius={70}
+                    outerRadius={110}
+                    paddingAngle={2}
                     dataKey="value"
+                    label={renderCustomizedLabel}
+                    labelLine={true}
                   >
                     {oppsData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
-                  <Legend verticalAlign="bottom" height={36} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', marginTop: '10px' }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -145,6 +213,42 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-sm font-bold text-slate-800 uppercase">Alertas de Follow-up (Agenda)</h2>
+          <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-lg border border-amber-100">PRÓXIMOS EVENTOS</span>
+        </div>
+        
+        <div className="flex flex-col gap-2 relative">
+          <div className="absolute left-[15px] top={4} bottom={0} w-px bg-slate-100" style={{ width: '2px' }} />
+          
+          {todayTasks.length > 0 ? (
+            todayTasks.map((task) => (
+              <div key={task.id} className="relative pl-12 py-3 group">
+                <div className={`absolute left-0 top-[18px] w-8 h-8 -ml-1 rounded-full border-[3px] border-white flex items-center justify-center text-white ${task.priority === 'Alta' ? 'bg-rose-500' : task.priority === 'Média' ? 'bg-amber-500' : 'bg-blue-400'}`}>
+                  <Clock className="w-3.5 h-3.5" />
+                </div>
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 group-hover:border-indigo-200 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-slate-800">{task.title}</p>
+                    <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-white text-slate-500 border border-slate-200 shadow-sm">
+                      {task.date?.toDate().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  {task.description && <p className="text-xs text-slate-500 mt-2 line-clamp-2">{task.description}</p>}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-12 pl-12 text-slate-400 text-sm">
+              Nenhum follow-up pendente. <a href="/agenda" className="text-indigo-500 hover:underline">Adicionar na agenda.</a>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
+
+

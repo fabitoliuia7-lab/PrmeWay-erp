@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, ShoppingBag, LogOut, Package, PieChart, BarChart } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, LogOut, Package, PieChart, BarChart, Calendar } from 'lucide-react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import clsx from 'clsx';
-import logoUrl from '../assets/logo.png';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -11,12 +12,32 @@ interface SidebarProps {
 
 export default function Sidebar({ onClose }: SidebarProps) {
   const { logout, user } = useAuth();
-  const [imgError, setImgError] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'tasks'), where('status', '==', 'Pendente'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let overdueAndToday = 0;
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+      
+      snapshot.forEach(doc => {
+        const date = doc.data().date?.toDate();
+        if (date && date <= todayEnd) {
+          overdueAndToday++;
+        }
+      });
+      setPendingCount(overdueAndToday);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'CRM (Clientes)', path: '/clients', icon: Users },
     { name: 'Oportunidades (ERP)', path: '/opportunities', icon: BarChart },
+    { name: 'Agenda & Follow-up', path: '/agenda', icon: Calendar, badge: pendingCount },
     { name: 'Importações', path: '/sales', icon: Package },
     { name: 'Relatórios', path: '/reports', icon: PieChart },
   ];
@@ -27,7 +48,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         <div className="flex items-center gap-3 text-white">
           <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg p-1 shrink-0">
             <img 
-              src={logoUrl} 
+              src="/logo-primeway.png" 
               alt="Primeway Logo" 
               className="w-full h-full object-contain"
             />
@@ -37,19 +58,28 @@ export default function Sidebar({ onClose }: SidebarProps) {
       </div>
       
       <nav className="flex-1 py-4 overflow-y-auto text-sm font-medium">
-        <div className="px-6 py-2 text-slate-500 uppercase text-[10px] tracking-widest font-bold">Menu</div>
+        <div className="px-6 py-2 text-slate-500 uppercase text-[10px] tracking-widest font-bold flex justify-between">
+          <span>Menu</span>
+        </div>
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             onClick={onClose}
             className={({ isActive }) => clsx(
-              "flex items-center gap-3 px-6 py-3 transition-colors",
+              "flex items-center justify-between px-6 py-3 transition-colors",
               isActive ? "bg-indigo-600/10 text-indigo-400 border-r-2 border-indigo-500" : "hover:bg-slate-800 hover:text-white"
             )}
           >
-            <item.icon className="w-5 h-5" />
-            <span>{item.name}</span>
+            <div className="flex items-center gap-3">
+              <item.icon className="w-5 h-5" />
+              <span>{item.name}</span>
+            </div>
+            {!!item.badge && item.badge > 0 && (
+              <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center animate-pulse">
+                {item.badge}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

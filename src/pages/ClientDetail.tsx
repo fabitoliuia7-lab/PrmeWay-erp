@@ -78,6 +78,8 @@ export default function ClientDetail() {
           ...formData,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
+          ownerId: user?.uid,
+          userEmail: user?.email,
         });
         navigate('/clients');
       } else if (id) {

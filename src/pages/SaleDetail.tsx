@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, deleteDoc, collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Save, Trash2, Calendar, FileText } from 'lucide-react';
 
 export default function SaleDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isNew = id === 'new';
 
   const [formData, setFormData] = useState({
@@ -61,6 +63,8 @@ export default function SaleDetail() {
         await setDoc(doc(db, 'sales', newId), {
           ...dataToSave,
           createdAt: serverTimestamp(),
+          ownerId: user?.uid,
+          userEmail: user?.email,
         });
         navigate('/sales');
       } else if (id) {

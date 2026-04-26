@@ -52,6 +52,7 @@
         "value": { "type": "number" },
         "status": { "type": "string", "enum": ["Prospecção", "Proposta", "Negociação", "Ganho", "Perdido"] },
         "deadline": { "type": "string", "format": "date" },
+        "nextFollowUp": { "type": "string", "format": "date-time" },
         "items": {
           "type": "array",
           "items": {
@@ -68,6 +69,23 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["title", "clientId", "status"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Tasks or reminders for follow-ups and meetings",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Pendente", "Concluída", "Cancelada"] },
+        "priority": { "type": "string", "enum": ["Baixa", "Média", "Alta"] },
+        "clientId": { "type": "string" },
+        "opportunityId": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "date", "status", "priority"]
     },
     "Sale": {
       "title": "Sale / Importation",
@@ -106,6 +124,10 @@
     "/sales/{saleId}": {
       "schema": { "$ref": "#/entities/Sale" },
       "description": "Sales and service records"
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Internal tasks and follow-up activities"
     }
   }
 }

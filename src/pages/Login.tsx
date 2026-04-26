@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import logoUrl from '../assets/logo.png';
 
 export default function Login() {
   const { loginWithGoogle } = useAuth();
@@ -23,7 +22,7 @@ export default function Login() {
         <div className="flex flex-col items-center justify-center mb-8">
           <div className="w-24 h-24 flex items-center justify-center mb-4">
             <img 
-              src={logoUrl} 
+              src="/logo-primeway.png" 
               alt="Primeway Logo" 
               className="w-full h-full object-contain drop-shadow-md"
             />

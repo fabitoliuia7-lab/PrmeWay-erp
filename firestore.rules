@@ -47,5 +47,12 @@ service cloud.firestore {
       allow update: if isSignedIn() && incoming().keys().hasAny(['title', 'clientId', 'type', 'status', 'amount', 'notes', 'updatedAt']);
       allow delete: if isSignedIn();
     }
+
+    match /tasks/{taskId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().keys().hasAll(['title', 'date', 'status', 'priority', 'createdAt']);
+      allow update: if isSignedIn() && incoming().keys().hasAny(['title', 'description', 'date', 'status', 'priority', 'completedBy']);
+      allow delete: if isSignedIn();
+    }
   }
 }
